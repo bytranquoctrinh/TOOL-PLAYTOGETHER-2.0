@@ -5,21 +5,24 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>PlayTogether Fish Tool</title>
 
-<!-- Logo + Manifest -->
+<!-- PWA manifest và icon -->
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" sizes="192x192" href="icon_192x192.png">
 <link rel="apple-touch-icon" href="icon_512x512.png">
 <meta name="theme-color" content="#39ff14">
 
-<!-- iOS hỗ trợ full screen -->
+<!-- Quan trọng cho iOS: ẩn thanh địa chỉ -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
 <style>
   body{background:#000;color:#39ff14;font-family:monospace;margin:0;padding:10px}
   h2{font-size:18px;text-align:center;margin:10px 0;color:#fff}
-  button{display:block;margin:0 auto 15px auto;background:#000;border:1px solid #39ff14;
-    color:#39ff14;padding:12px 20px;font-size:16px;border-radius:6px}
+  .btn-group{display:flex;gap:5px;margin-bottom:15px}
+  button{flex:1;background:#000;border:1px solid #39ff14;
+    color:#39ff14;padding:10px 0;font-size:15px;
+    border-radius:6px;cursor:pointer}
+  button.activeBtn{border:2px solid #fff;box-shadow:0 0 8px #39ff14}
   .fish{border:1px solid #39ff14;margin:10px 0;padding:10px;border-radius:8px}
   .active{border-color:#fff;box-shadow:0 0 10px #39ff14}
   .title{color:#fff;font-weight:bold;font-size:16px;margin-bottom:5px}
@@ -29,60 +32,57 @@
 </head>
 <body>
 <h2>🎣 PlayTogether Fish Tool</h2>
-<button id="btn">GỢI Ý</button>
+<div class="btn-group">
+  <button id="btnDay">Ban ngày</button>
+  <button id="btnNight">Ban đêm</button>
+  <button id="btn">GỢI Ý</button>
+</div>
 <div id="list"></div>
 
 <script>
-// Đăng ký service worker
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("sw.js").catch(err => console.log("SW fail:", err));
-}
-
-const fishData=[ /* dữ liệu cá bạn đã gửi, mình giữ nguyên */ 
-  {name:'Cá tầm',time:'Ban ngày',minute:'',shadow:'4',loc:'Ao khu trung tâm'},
-  {name:'Cá xiêm rồng trắng',time:'Ban đêm',minute:'',shadow:'1',loc:'Đài phun nước Khu Trung tâm'},
-  {name:'Sứa nomura',time:'Cả ngày',minute:'',shadow:'4',loc:'Tất cả các vùng biển'},
-  {name:'Thiên sứ biển',time:'Cả ngày',minute:'',shadow:'1',loc:'Biển sâu'},
-  {name:'Cá voi trắng',time:'Cả ngày',minute:'',shadow:'4',loc:'Biển sâu'},
-  {name:'Kỳ lân biển',time:'Ban đêm',minute:'55-07',shadow:'4',loc:'Biển sâu'},
-  {name:'Cua nhện',time:'Ban đêm',minute:'55-07',shadow:'4',loc:'Biển sâu'},
-  {name:'Tôm hùm xanh',time:'Ban đêm',minute:'',shadow:'2',loc:'Biển sâu, Thuyền'},
-  {name:'Cá voi sát thủ',time:'Ban đêm',minute:'55-05 | 25-35',shadow:'5 (thường)/1 (mini)',loc:'Biển sâu, Thuyền'},
-  {name:'Cá mập mũi cưa',time:'Ban đêm',minute:'',shadow:'5 (thường)/1 (mini)',loc:'Biển sâu, Thuyền'},
-  {name:'Cá nhà táng',time:'Ban đêm',minute:'00-05 | 30-35-36',shadow:'5 (thường)/1 (mini)',loc:'Thuyền, Hố Xanh'},
-  {name:'Cá nhám voi',time:'Ban đêm',minute:'00-05 | 30-35',shadow:'5',loc:'Thuyền, Hố Xanh'},
-  {name:'Cá nhám búa',time:'Cả ngày',minute:'',shadow:'5 (thường)/1 (mini)',loc:'Biển sâu, Thuyền, Hải đăng'},
-  {name:'Hải cầu bắc cực',time:'Cả ngày',minute:'00-05 | 30-35',shadow:'4',loc:'Hải đăng, Hố Xanh'},
-  {name:'Cá voi xanh',time:'Ban ngày',minute:'13-18 | 43-48',shadow:'5',loc:'Hải đăng'},
-  {name:'Cá heo không vây',time:'Ban ngày',minute:'',shadow:'4',loc:'Hải đăng'},
-  {name:'Cá heo hồng',time:'Ban ngày',minute:'15-17 | 45-47',shadow:'5 (thường)/1 (mini)',loc:'Trung tâm mua sắm'},
-  {name:'Cá cúi',time:'Ban ngày',minute:'13-18 | 43-48',shadow:'4',loc:'Trung tâm mua sắm'},
-  {name:'Kỳ nhông Axolotl',time:'Ban ngày',minute:'',shadow:'1',loc:'Trung tâm mua sắm, Hồ bơi trong nhà'},
-  {name:'Cá hổ',time:'Ban ngày',minute:'34-50',shadow:'4',loc:'Trung tâm mua sắm, Hồ bơi trong nhà'},
-  {name:'Chi hải tượng',time:'Ban ngày',minute:'08-24 | 38-54',shadow:'4',loc:'Bãi biển'},
-  {name:'Hải mã',time:'Ban ngày',minute:'08-24 | 38-54',shadow:'4',loc:'Bãi biển'},
-  {name:'Rùa da',time:'Ban ngày',minute:'08-24 | 38-54',shadow:'4',loc:'Bãi biển'},
-  {name:'Rùa biển',time:'Ban ngày',minute:'10-20 | 40-50',shadow:'4',loc:'Bãi biển'},
-  {name:'Cá lóc môi trề',time:'Ban ngày',minute:'',shadow:'4',loc:'Hồ Khu Cắm trại'},
-  {name:'Kỳ nhông khổng lồ',time:'Ban đêm',minute:'25-35 | 55-05',shadow:'3',loc:'Hồ Khu Cắm trại, Thác nước'},
-  {name:'Cá sấu mõm dài',time:'Ban đêm',minute:'25-35 | 55-05',shadow:'4',loc:'Thác nước'},
-  {name:'Cá chiên',time:'Ban đêm',minute:'',shadow:'4',loc:'Hồ Khu Cắm trại, Thác nước'},
-  {name:'Cá hải tượng',time:'Cả ngày',minute:'',shadow:'4',loc:'Hồ Khu Cắm trại, Thác nước'},
-  {name:'Cá mập Greenland',time:'Ban đêm',minute:'',shadow:'5',loc:'Hố xanh'},
-  {name:'Cá mập yêu tinh',time:'Ban đêm',minute:'30-35 | 00-05',shadow:'4',loc:'Hố xanh'},
-  {name:'Cá mái chèo',time:'Ban đêm',minute:'30-35 | 00-05',shadow:'5',loc:'Hố xanh'},
-  {name:'Cá nhám mang xếp',time:'Cả ngày',minute:'30-35 | 00-05',shadow:'4',loc:'Hố xanh'},
-  {name:'Mực khổng lồ',time:'Cả ngày',minute:'20-35',shadow:'5',loc:'Hố xanh'},
-  {name:'Cá sấu',time:'Cả ngày',minute:'20-30 | 55-05',shadow:'5 (thường)/1 (mini)',loc:'Hồ bơi trong nhà'},
-  {name:'Baba',time:'Cả ngày',minute:'',shadow:'2',loc:'Ao, Hồ bơi Khu Trung tâm'},
-  // Cá mới thêm
-  {name:'Cá hải long lá',time:'Ban ngày',minute:'51-55',shadow:'1',loc:'Hải đăng'},
-  {name:'Cá heo thường',time:'Ban đêm',minute:'34-50',shadow:'4',loc:'Hố xanh'},
-  {name:'Cá nạng hải',time:'Ban ngày',minute:'19-35',shadow:'4',loc:'Hố xanh'},
-  {name:'Cá thái dương',time:'Ban ngày',minute:'16-30',shadow:'5',loc:'Hố xanh'}
+const fishData=[
+{name:'Cá tầm',time:'Ban ngày',minute:'',shadow:'4',loc:'Ao khu trung tâm'},
+{name:'Cá xiêm rồng trắng',time:'Ban đêm',minute:'',shadow:'1',loc:'Đài phun nước Khu Trung tâm'},
+{name:'Sứa nomura',time:'Cả ngày',minute:'',shadow:'4',loc:'Tất cả các vùng biển'},
+{name:'Thiên sứ biển',time:'Cả ngày',minute:'',shadow:'1',loc:'Biển sâu'},
+{name:'Cá voi trắng',time:'Cả ngày',minute:'',shadow:'4',loc:'Biển sâu'},
+{name:'Kỳ lân biển',time:'Ban đêm',minute:'55-07 | 25-37',shadow:'4',loc:'Biển sâu'},
+{name:'Cua nhện',time:'Ban đêm',minute:'55-07 | 25-37',shadow:'4',loc:'Biển sâu'},
+{name:'Tôm hùm xanh',time:'Ban đêm',minute:'',shadow:'2',loc:'Biển sâu, Thuyền'},
+{name:'Cá voi sát thủ',time:'Ban đêm',minute:'55-05 | 25-35',shadow:'5 (thường)/1 (mini)',loc:'Biển sâu, Thuyền'},
+{name:'Cá mập mũi cưa',time:'Ban đêm',minute:'',shadow:'5 (thường)/1 (mini)',loc:'Biển sâu, Thuyền'},
+{name:'Cá nhà táng',time:'Ban đêm',minute:'00-05 | 30-35-36',shadow:'5 (thường)/1 (mini)',loc:'Thuyền, Hố Xanh'},
+{name:'Cá nhám voi',time:'Ban đêm',minute:'00-05 | 30-35',shadow:'5',loc:'Thuyền, Hố Xanh'},
+{name:'Cá nhám búa',time:'Cả ngày',minute:'',shadow:'5 (thường)/1 (mini)',loc:'Biển sâu, Thuyền, Hải đăng'},
+{name:'Hải cầu bắc cực',time:'Cả ngày',minute:'00-05 | 30-35',shadow:'4',loc:'Hải đăng, Hố Xanh'},
+{name:'Cá voi xanh',time:'Ban ngày',minute:'13-18 | 43-48',shadow:'5',loc:'Hải đăng'},
+{name:'Cá heo không vây',time:'Ban ngày',minute:'',shadow:'4',loc:'Hải đăng'},
+{name:'Cá heo hồng',time:'Ban ngày',minute:'15-17 | 45-47',shadow:'5 (thường)/1 (mini)',loc:'Trung tâm mua sắm'},
+{name:'Cá cúi',time:'Ban ngày',minute:'13-18 | 43-48',shadow:'4',loc:'Trung tâm mua sắm'},
+{name:'Kỳ nhông Axolotl',time:'Ban ngày',minute:'',shadow:'1',loc:'Trung tâm mua sắm, Hồ bơi trong nhà'},
+{name:'Cá hổ',time:'Ban ngày',minute:'34-50',shadow:'4',loc:'Trung tâm mua sắm, Hồ bơi trong nhà'},
+{name:'Chi hải tượng',time:'Ban ngày',minute:'08-24 | 38-54',shadow:'4',loc:'Bãi biển'},
+{name:'Hải mã',time:'Ban ngày',minute:'08-24 | 38-54',shadow:'4',loc:'Bãi biển'},
+{name:'Rùa da',time:'Ban ngày',minute:'08-24 | 38-54',shadow:'4',loc:'Bãi biển'},
+{name:'Rùa biển',time:'Ban ngày',minute:'10-20 | 40-50',shadow:'4',loc:'Bãi biển'},
+{name:'Cá lóc môi trề',time:'Ban ngày',minute:'',shadow:'4',loc:'Hồ Khu Cắm trại'},
+{name:'Kỳ nhông khổng lồ',time:'Ban đêm',minute:'25-35 | 55-05',shadow:'3',loc:'Hồ Khu Cắm trại, Thác nước'},
+{name:'Cá sấu mõm dài',time:'Ban đêm',minute:'25-35 | 55-05',shadow:'4',loc:'Thác nước'},
+{name:'Cá chiên',time:'Ban đêm',minute:'',shadow:'4',loc:'Hồ Khu Cắm trại, Thác nước'},
+{name:'Cá hải tượng',time:'Cả ngày',minute:'',shadow:'4',loc:'Hồ Khu Cắm trại, Thác nước'},
+{name:'Cá mập Greenland',time:'Ban đêm',minute:'',shadow:'5',loc:'Hố xanh'},
+{name:'Cá mập yêu tinh',time:'Ban đêm',minute:'30-35 | 00-05',shadow:'4',loc:'Hố xanh'},
+{name:'Cá mái chèo',time:'Ban đêm',minute:'30-35 | 00-05',shadow:'5',loc:'Hố xanh'},
+{name:'Cá nhám mang xếp',time:'Cả ngày',minute:'30-35 | 00-05',shadow:'4',loc:'Hố xanh'},
+{name:'Mực khổng lồ',time:'Cả ngày',minute:'20-40',shadow:'5',loc:'Hố xanh'},
+{name:'Cá sấu',time:'Cả ngày',minute:'20-30 | 55-05',shadow:'5 (thường)/1 (mini)',loc:'Hồ bơi trong nhà'},
+{name:'Baba',time:'Cả ngày',minute:'',shadow:'2',loc:'Ao, Hồ bơi Khu Trung tâm'},
+{name:'Cá hải long lá',time:'Ban ngày',minute:'51-07',shadow:'1',loc:'Hải đăng'},
+{name:'Cá heo thường',time:'Ban đêm',minute:'34-50',shadow:'4',loc:'Hố xanh'},
+{name:'Cá nạng hải',time:'Ban ngày',minute:'19-35',shadow:'4',loc:'Hố xanh'},
+{name:'Cá thái dương',time:'Ban ngày',minute:'16-32',shadow:'5',loc:'Hố xanh'}
 ];
 
-function inDay(h){return h>=6&&h<18;}
 function parseRanges(str){
   if(!str) return [];
   return str.split('|').map(s=>s.trim()).map(r=>{
@@ -102,25 +102,30 @@ function predictRange(minuteStr){
   }).join(" | ");
 }
 
-document.getElementById("btn").onclick=function(){
+let gameTime=null;
+function setGameTime(mode){
+  gameTime=mode;
+  document.querySelectorAll(".btn-group button").forEach(btn=>btn.classList.remove("activeBtn"));
+  if(mode=="day") document.getElementById("btnDay").classList.add("activeBtn");
+  if(mode=="night") document.getElementById("btnNight").classList.add("activeBtn");
+}
+
+function runTool(){
   const now=new Date();
-  const h=now.getHours(),m=now.getMinutes();
-  const isDay=inDay(h);
+  const m=now.getMinutes();
   let arr=[];
   fishData.forEach(f=>{
     let active=false;
     let rangesBase=parseRanges(f.minute);
     let rangesPred=parseRanges(predictRange(f.minute));
-
     if(rangesBase.length){
       if(rangesBase.some(r=>inRange(m,r.a,r.b))) active=true;
     }
     if(!active && rangesPred.length){
       if(rangesPred.some(r=>inRange(m,r.a,r.b))) active=true;
     }
-
-    if(f.time=="Ban ngày"&&!isDay) active=false;
-    if(f.time=="Ban đêm"&&isDay) active=false;
+    if(gameTime=="day" && f.time=="Ban đêm") active=false;
+    if(gameTime=="night" && f.time=="Ban ngày") active=false;
 
     arr.push({...f,active,pred:predictRange(f.minute)});
   });
@@ -139,6 +144,17 @@ document.getElementById("btn").onclick=function(){
       <div class="row">📍 Địa điểm: ${f.loc}</div>
       <div class="row">🎯 Bóng: ${f.shadow}</div>`;
     list.appendChild(div);
+  });
+}
+
+document.getElementById("btnDay").onclick=function(){setGameTime("day");}
+document.getElementById("btnNight").onclick=function(){setGameTime("night");}
+document.getElementById("btn").onclick=runTool;
+
+// Đăng ký service worker
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js").then(() => {
+    console.log("Service Worker registered!");
   });
 }
 </script>
