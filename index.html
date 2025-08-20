@@ -5,12 +5,15 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>PlayTogether Fish Tool</title>
 
-<!-- PWA config -->
+<!-- Logo + Manifest -->
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" sizes="192x192" href="icon_192x192.png">
-<link rel="icon" type="image/png" sizes="512x512" href="icon_512x512.png">
-<link rel="apple-touch-icon" href="icon_512x512.png"> <!-- cần cho iOS -->
+<link rel="apple-touch-icon" href="icon_512x512.png">
 <meta name="theme-color" content="#39ff14">
+
+<!-- iOS hỗ trợ full screen -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
 <style>
   body{background:#000;color:#39ff14;font-family:monospace;margin:0;padding:10px}
@@ -30,7 +33,12 @@
 <div id="list"></div>
 
 <script>
-const fishData=[
+// Đăng ký service worker
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js").catch(err => console.log("SW fail:", err));
+}
+
+const fishData=[ /* dữ liệu cá bạn đã gửi, mình giữ nguyên */ 
   {name:'Cá tầm',time:'Ban ngày',minute:'',shadow:'4',loc:'Ao khu trung tâm'},
   {name:'Cá xiêm rồng trắng',time:'Ban đêm',minute:'',shadow:'1',loc:'Đài phun nước Khu Trung tâm'},
   {name:'Sứa nomura',time:'Cả ngày',minute:'',shadow:'4',loc:'Tất cả các vùng biển'},
@@ -132,11 +140,6 @@ document.getElementById("btn").onclick=function(){
       <div class="row">🎯 Bóng: ${f.shadow}</div>`;
     list.appendChild(div);
   });
-}
-
-// Đăng ký service worker
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("sw.js");
 }
 </script>
 </body>
